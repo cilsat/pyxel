@@ -320,11 +320,12 @@ def test(img, setname="sans", order="font", feats="contour", featdimensions=5):
         cleanobjlist = preprocess(objlist)
     elif feats=="contour":
         skel = thin(img)
-        objlist = segment(skel, cc=False)
+        objlist = segment(skel, cc=True)
         cleanobjlist = preprocess(objlist)
 
     # attempt to output a letter for each object found in test image
     output = ""
+    print len(chars), len(trainfeats)
     for obj in cleanobjlist:
         # extract features
         objfeat = freeman(obj, skel, featdimensions, featdimensions)
@@ -341,6 +342,7 @@ Input an image. The image MUST CONTAIN all lower case letters, all upper case le
 The procedure then detects objects and assigns them letters/digits ("labels") based on this order
 """
 def train(img, setname="sans", order="font", feats="contour", featdimensions=5):
+    # preprocess training image
     if feats=="zs":
         imgs = downsample(img)
         bin = binarize(imgs)
@@ -349,7 +351,7 @@ def train(img, setname="sans", order="font", feats="contour", featdimensions=5):
         cleanobjlist = preprocess(objlist)
     elif feats=="contour":
         skel = thin(img)
-        objlist = segment(skel, cc=False)
+        objlist = segment(skel, cc=True)
         cleanobjlist = preprocess(objlist)
     
     # assign letters to features
@@ -374,6 +376,7 @@ We try to clean the objects as much as possible:
 """
 def preprocess(objlist):
 
+    print len(objlist)
     prefeats = prefeatextract(objlist)
 
     reordered_prefeats, reordered_objlist = reorder(prefeats, objlist)
@@ -483,19 +486,18 @@ def segment(img, cc=False):
 
         startpix = findfirst(startrow, imgt)
         startrow = startpix[0]
-        obj, cc = dfsi(imgt, startpix)
+        obj, code = dfsi(imgt, startpix)
         # add object path to our output array
         if len(obj) > imgh:
             allobjpix += [obj]
-            allobjcc += [cc]
+            allobjcc += [code]
 
         # each time an object is identified we reevaluate the indices of nonzero pixels in our image.
         # this is an expensive operation and should ideally be trashed: alternatively, we should delete 
         # elements from nonzeropix directly once they've been accounted for in our dfs procedure
         #nonzeropix = np.argwhere(imgtb) + np.ones((1,1), dtype=np.uint8)
 
-        
-    if cc==True:
+    if cc:
         return allobjcc
     else:
         return allobjpix
@@ -561,16 +563,16 @@ def getturncode(allobjcc):
 
 def getdirection(row, col):
     if row == -1:
-        if col == -1: return 1
+        if col == -1: return 3
         if col == 0 : return 2
-        if col == 1 : return 3
+        if col == 1 : return 1
     if row == 0:
         if col == -1: return 8
         if col == 1 : return 4
     if row == 1:
-        if col == -1: return 7
+        if col == -1: return 5
         if col == 0 : return 6
-        if col == 1 : return 5
+        if col == 1 : return 7
 
 def levenshtein(s1, s2):
     if len(s1) < len(s2):

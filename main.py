@@ -88,10 +88,10 @@ class Example(QMainWindow):
 
         # FEATURE MENU
         chaincodeMenu = QAction('Chain code', self)
-        chaincodeMenu.triggered.connect(lambda: self.updateTxtAfter(str([util.getdirection(chain[n][0], chain[n][1]) for chain in util.segment(util.thin(self.imgNpBefore, bg='light'), cc=True) for n in xrange(len(chain))])))
+        chaincodeMenu.triggered.connect(lambda: self.updateTxtAfter(str([util.getdirection(chain[n][0], chain[n][1]) for chain in util.segment(util.thin(self.imgNpBefore), cc=True) for n in xrange(len(chain))])))
 
         turncodeMenu = QAction('Turn code', self)
-        turncodeMenu.triggered.connect(lambda: self.updateTxtAfter(str([util.getturncode(cc) for cc in util.segment(util.thin(self.imgNpBefore, bg='light'), cc=True)])))
+        turncodeMenu.triggered.connect(lambda: self.updateTxtAfter(str([util.getturncode(cc) for cc in util.segment(util.thin(self.imgNpBefore, bg='light'), cc=False)])))
 
         skeletonMenu = QAction('Zhang-Suen thinning', self)
         skeletonMenu.triggered.connect(lambda:self.updateImgAfter(util.zhangsuen(util.binarize(self.imgNpBefore, bg='light'))))
@@ -104,7 +104,7 @@ class Example(QMainWindow):
 
         # RECOGNITION MENU
         freemantrainfontMenu = QAction('Train Contour Font', self)
-        freemantrainfontMenu.triggered.connect(lambda: util.train(self.imgNpBefore, setname='font1')) 
+        freemantrainfontMenu.triggered.connect(lambda: util.train(self.imgNpBefore, feats='zs', setname='font1')) 
 
         freemantrainplatMenu = QAction('Train ZS Plate (GNB)', self)
         freemantrainplatMenu.triggered.connect(lambda: util.gnb_train())
@@ -114,7 +114,7 @@ class Example(QMainWindow):
         cctctrainplatMenu = QAction('Train CC + TC Plate', self)
 
         freemantestfontMenu = QAction('Predict Contour Font', self)
-        freemantestfontMenu.triggered.connect(lambda: self.updateTxtAfter(util.test(self.imgNpBefore, setname='font1')))
+        freemantestfontMenu.triggered.connect(lambda: self.updateTxtAfter(util.test(self.imgNpBefore, feats='zs', setname='font1')))
         
         freemantestplatMenu = QAction('Predict Contour Plate', self)
         cctctestfontMenu = QAction('Predict CC + TC Font', self)
