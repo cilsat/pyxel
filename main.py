@@ -86,6 +86,29 @@ class Example(QMainWindow):
         segmentMenu = QAction('Segment', self)
         segmentMenu.triggered.connect(lambda: self.updateTxtAfter(str(len(util.preprocess(util.segment(util.zhangsuen(util.binarize(self.imgNpBefore))))))))
 
+        # EDGE DETECTION MENU
+        averageMenu = QAction('Average', self)
+        averageMenu.triggered.connect(lambda: self.updateImgAfter(util.degreezero(self.imgNpBefore, type="average")))
+
+        differenceMenu = QAction('Difference', self)
+        differenceMenu.triggered.connect(lambda: self.updateImgAfter(util.degreezero(self.imgNpBefore, type="difference")))
+
+        homogenMenu = QAction('Homogen', self)
+        homogenMenu.triggered.connect(lambda: self.updateImgAfter(util.degreezero(self.imgNpBefore, type="homogen")))
+
+        sobelMenu = QAction('Sobel', self)
+        sobelMenu.triggered.connect(lambda: self.updateImgAfter(util.degreeone(self.imgNpBefore, type="sobel")))
+
+        prewittMenu = QAction('Prewitt', self)
+        prewittMenu.triggered.connect(lambda: self.updateImgAfter(util.degreeone(self.imgNpBefore, type="prewitt")))
+
+        freichenMenu = QAction('Frei-Chen', self)
+        freichenMenu.triggered.connect(lambda: self.updateImgAfter(util.degreeone(self.imgNpBefore, type="freichen")))
+
+        kirschMenu = QAction('Kirsch', self)
+        kirschMenu.triggered.connect(lambda: self.updateImgAfter(util.degreeone(self.imgNpBefore, type="kirsch")))
+
+
         # FEATURE MENU
         chaincodeMenu = QAction('Chain code', self)
         chaincodeMenu.triggered.connect(lambda: self.updateTxtAfter(str([util.getdirection(chain[n][0], chain[n][1]) for chain in util.segment(util.thin(self.imgNpBefore), cc=True) for n in xrange(len(chain))])))
@@ -104,19 +127,21 @@ class Example(QMainWindow):
 
         # RECOGNITION MENU
         freemantrainfontMenu = QAction('Train Contour Font', self)
-        freemantrainfontMenu.triggered.connect(lambda: util.train(self.imgNpBefore, feats='zs', setname='font1')) 
+        freemantrainfontMenu.triggered.connect(lambda: util.train(self.imgNpBefore, feats='zs', order='font', setname='font')) 
 
         freemantrainplatMenu = QAction('Train ZS Plate (GNB)', self)
-        freemantrainplatMenu.triggered.connect(lambda: util.gnb_train())
+        freemantrainplatMenu.triggered.connect(lambda: util.train(self.imgNpBefore, feats='zs', order='plat', setname='plat'))
 
         cctctrainfontMenu = QAction('Train CC + TC Font', self)
 
         cctctrainplatMenu = QAction('Train CC + TC Plate', self)
 
         freemantestfontMenu = QAction('Predict Contour Font', self)
-        freemantestfontMenu.triggered.connect(lambda: self.updateTxtAfter(util.test(self.imgNpBefore, feats='zs', setname='font1')))
+        freemantestfontMenu.triggered.connect(lambda: self.updateTxtAfter(util.test(self.imgNpBefore, feats='zs', order='font', setname='font')))
         
         freemantestplatMenu = QAction('Predict Contour Plate', self)
+        freemantestplatMenu.triggered.connect(lambda:self.updateTxtAfter(util.test(self.imgNpBefore, feats='zs', order='plat', setname='plat')))
+
         cctctestfontMenu = QAction('Predict CC + TC Font', self)
 
         cctctestplatMenu = QAction('Predict CC + TC Plate', self)
@@ -137,6 +162,15 @@ class Example(QMainWindow):
         processMenu.addAction(gaussianMenu)
         processMenu.addAction(resizeMenu)
         processMenu.addAction(segmentMenu)
+
+        edgeMenu = menubar.addMenu('&Edge Detection')
+        edgeMenu.addAction(averageMenu)
+        edgeMenu.addAction(differenceMenu)
+        edgeMenu.addAction(homogenMenu)
+        edgeMenu.addAction(sobelMenu)
+        edgeMenu.addAction(prewittMenu)
+        edgeMenu.addAction(freichenMenu)
+        edgeMenu.addAction(kirschMenu)
 
         featureMenu = menubar.addMenu('&Features')
         featureMenu.addAction(chaincodeMenu)
@@ -225,6 +259,7 @@ class Example(QMainWindow):
                 img = img.astype(np.uint8)*128
             if img.dtype == np.uint8:
                 imgAfter = QImage(img, width, height, width, QImage.Format_Indexed8)
+
         myPixmap = QPixmap.fromImage(imgAfter)
         myPixmap = myPixmap.scaled(self.mainAfter.size(), Qt.KeepAspectRatio)
         self.mainAfter.setPixmap(myPixmap)
