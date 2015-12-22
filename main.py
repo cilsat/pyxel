@@ -1,4 +1,4 @@
-#!/usr/bin/python2
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
 import sys
@@ -27,6 +27,7 @@ class Example(QMainWindow):
         self.main = QLabel()
         self.imgNpBefore = np.array([])
         self.imgNpAfter = np.array([])
+        self.skin = mpimg.imread('res/skin.jpg')
 
         grid = QGridLayout()
         self.main.setLayout(grid)
@@ -75,16 +76,16 @@ class Example(QMainWindow):
         grayscaleMenu.triggered.connect(lambda: self.updateImgAfter(util.getgrayscale(self.imgNpBefore)))
 
         binarizeMenu = QAction('Binarize', self)
-        binarizeMenu.triggered.connect(lambda: self.updateImgAfter(util.binarize(self.imgNpBefore)))
+        binarizeMenu.triggered.connect(lambda: self.updateImgAfter(util.otsu(self.imgNpBefore)))
 
         gaussianMenu = QAction('Smooth', self)
-        gaussianMenu.triggered.connect(lambda: self.updateImgAfter(util.convolve(util.gaussian_filt(), util.getgrayscale(self.imgNpBefore))))        
+        gaussianMenu.triggered.connect(lambda: self.updateImgAfter(util.convolvefft(util.gaussian_filt(), util.getgrayscale(self.imgNpBefore))))        
 
         resizeMenu = QAction('Resize', self)
         resizeMenu.triggered.connect(lambda: self.updateImgAfter(util.downsample(self.imgNpBefore)))
 
         segmentMenu = QAction('Segment', self)
-        segmentMenu.triggered.connect(lambda: self.updateTxtAfter(str(len(util.preprocess(util.segment(util.zhangsuen(util.binarize(self.imgNpBefore))))))))
+        segmentMenu.triggered.connect(lambda: self.updateImgAfter(util.showobj(util.downsample(self.imgNpBefore, target_height=480), util.segment(util.thin(util.otsu(util.downsample(self.imgNpBefore, target_height=480), bg='light'))), box=False)))
 
         # EDGE DETECTION MENU
         averageMenu = QAction('Average', self)
@@ -106,7 +107,7 @@ class Example(QMainWindow):
         freichenMenu.triggered.connect(lambda: self.updateImgAfter(util.degreeone(self.imgNpBefore, type="freichen")))
 
         kirschMenu = QAction('Kirsch', self)
-        kirschMenu.triggered.connect(lambda: self.updateImgAfter(util.degreeone(self.imgNpBefore, type="kirsch")))
+        kirschMenu.triggered.connect(lambda: self.updateImgAfter(util.degreetwo(self.imgNpBefore, type="kirsch")))
 
 
         # FEATURE MENU
@@ -145,6 +146,12 @@ class Example(QMainWindow):
         cctctestfontMenu = QAction('Predict CC + TC Font', self)
 
         cctctestplatMenu = QAction('Predict CC + TC Plate', self)
+
+        facesMenu = QAction('Show faces', self)
+        facesMenu.triggered.connect(lambda: self.updateImgAfter(util.getFaces(self.imgNpBefore, self.skin, range=70)))
+
+        faceMenu = QAction('Show facial features', self)
+        faceMenu.triggered.connect(lambda: self.updateImgAfter(util.showobj(self.imgNpBefore, util.getFaceFeats(self.imgNpBefore, self.skin, range=100), color=False)))
 
         # MENU BAR
         menubar = self.menuBar()
@@ -188,6 +195,8 @@ class Example(QMainWindow):
         recogMenu.addAction(freemantestplatMenu)
         recogMenu.addAction(cctctestfontMenu)
         recogMenu.addAction(cctctestplatMenu)
+        recogMenu.addAction(facesMenu)
+        recogMenu.addAction(faceMenu)
         #recogMenu.addAction(
 
         """
@@ -216,25 +225,28 @@ class Example(QMainWindow):
     def showDialog(self):
         fname = QFileDialog.getOpenFileName(self, 'Open file', '/home/cilsat/Dropbox/kuliah/sem1/pp')
 
-        imgOriginal = np.require(mpimg.imread(fname[0]), np.uint8, 'C')
-        self.updateBefore(imgOriginal)
+        if fname[0]:
+            imgOriginal = np.require(mpimg.imread(fname[0]), np.uint8, 'C')
+            self.updateBefore(imgOriginal)
 
     def updateBefore(self, img):
-
-        print img.shape
-
         # the image format depends on the size/shape of the input image array
+        img = img.astype(np.uint8)
+        img = util.downsample(img, target_height=480)
         if len(img.shape) == 3:
             height, width, bytesPerPixel = img.shape
             if bytesPerPixel == 3:
                 imgBefore = QImage(img, width, height, bytesPerPixel*width, QImage.Format_RGB888)
             elif bytesPerPixel == 4:
                 imgBefore = QImage(img, width, height, bytesPerPixel*width, QImage.Format_RGBA8888_Premultiplied)
+            elif img.shape[-1] == 1:
+                imgBefore = QImage(img, width, height, width, QImage.Format_Indexed8)
 
         elif len(img.shape) == 2:
             height, width = img.shape
             if img.dtype == np.bool:
                 img = img.astype(np.uint8)*128
+                imgBefore = QImage(img, width, height, width, QImage.Format_Indexed8)
             if img.dtype == np.uint8:
                 imgBefore = QImage(img, width, height, width, QImage.Format_Indexed8)
 
@@ -244,7 +256,12 @@ class Example(QMainWindow):
         self.imgNpBefore = img
 
     def updateImgAfter(self, img):
+        if img.dtype == bool:
+            img = np.array(img*255, dtype=np.uint8)
+        else:
+            img = img.astype(np.uint8)
 
+        img = img.astype(np.uint8)
         # the image format depends on the size/shape of the input image array
         if len(img.shape) == 3:
             height, width, bytesPerPixel = img.shape
@@ -252,13 +269,12 @@ class Example(QMainWindow):
                 imgAfter = QImage(img, width, height, bytesPerPixel*width, QImage.Format_RGB888)
             elif bytesPerPixel == 4:
                 imgAfter = QImage(img, width, height, bytesPerPixel*width, QImage.Format_RGBA8888_Premultiplied)
+            elif img.shape[-1] == 1:
+                imgAfter = QImage(img, width, height, width, QImage.Format_Indexed8)
 
         elif len(img.shape) == 2:
             height, width = img.shape
-            if img.dtype == np.bool:
-                img = img.astype(np.uint8)*128
-            if img.dtype == np.uint8:
-                imgAfter = QImage(img, width, height, width, QImage.Format_Indexed8)
+            imgAfter = QImage(img, width, height, width, QImage.Format_Indexed8)
 
         myPixmap = QPixmap.fromImage(imgAfter)
         myPixmap = myPixmap.scaled(self.mainAfter.size(), Qt.KeepAspectRatio)
